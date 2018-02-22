@@ -214,6 +214,24 @@ void test_resize() {
   std::cout << "d = a.resize(5,5)" << std::endl;
   auto d = a.resize(5, 5);
   std::cout << d << std::endl;
+  std::cout << "e = a.resize(4,5)" << std::endl;
+  auto e = a.resize(4, 5);
+  std::cout << e << std::endl;
+  std::cout << "f = a.resize(6,5)" << std::endl;
+  auto f = a.resize(6, 5);
+  std::cout << f << std::endl;
+  std::cout << "g = a.resize(12,5)" << std::endl;
+  auto g = a.resize(12, 5);
+  std::cout << g << std::endl;
+}
+
+void test_add_row() {
+  Matrix<int> a(5, 6, 2);
+  std::cout << "a: \n" << a << std::endl;
+  a.add_row_back();
+  std::cout << "a.add_row_back(): \n" << a << std::endl;
+  a.add_row_front();
+  std::cout << "a.add_row_front(): \n" << a << std::endl;
 }
 
 int main() {
@@ -249,5 +267,7 @@ int main() {
   test_block("trans()", test_trans);
 
   test_block("resize()", test_resize);
+
+  test_block("add row", test_add_row);
   std::cout << "Tests of other operations Ended" << std::endl << std::endl;
 }

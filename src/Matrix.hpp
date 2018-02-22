@@ -50,32 +50,11 @@ struct size_mismatch : public std::logic_error {
   using logic_error::what;
 };
 
+template <typename It, typename T>
+class additional_info;
+
 template <typename T>
 class Matrix;
-
-template <typename T>
-class cr_iterator_base;
-
-template <typename T>
-struct std::iterator_traits<cr_iterator_base<T>> {
-  using difference_type = ptrdiff_t;
-  using pointer = T *;
-  using value_type = T;
-  using reference = T &;
-  using iterator_category = std::random_access_iterator_tag;
-};
-
-template <typename T>
-class row_iterator;
-
-template <typename T>
-struct std::iterator_traits<row_iterator<T>> {
-  using difference_type = ptrdiff_t;
-  using pointer = T *;
-  using value_type = T;
-  using reference = T &;
-  using iterator_category = std::random_access_iterator_tag;
-};
 
 template <typename T>
 class col_iterator;
@@ -163,7 +142,6 @@ template <typename T>
 class Matrix {
  public:
   ///-------------------attributes----------
-  friend row_iterator<T>;
   friend col_iterator<T>;
   friend std::ostream &operator<<<>(std::ostream &out, const Matrix<T> &met_);
   friend std::istream &operator>><>(std::istream &in, Matrix<T> &met_);
@@ -176,10 +154,8 @@ class Matrix {
   using const_iterator = const iterator;
   using reverse_iterator = std::reverse_iterator<T *>;
   using const_reverse_iterator = const reverse_iterator;
-  using row_iterator = row_iterator<T>;
-  using const_row_iterator = const row_iterator;
-  using col_iterator = col_iterator<T>;
-  using const_col_iterator = const col_iterator;
+  using column_iterator = col_iterator<T>;
+  using const_column_iterator = const column_iterator;
   ///--------------End attributes------------
   ///--------------methods----------------------
   ///--------------------------------------------
@@ -472,14 +448,28 @@ class Matrix {
     return do_resize(sz_.first, sz_.second);
   }
 
+  /**
+   * add rows to currenct metrix, resize if room is not enough
+   * @return additional_info for the users to assign value
+   */
+  additional_info<iterator, T> add_row_back(const size_type num_ = 1);
+  additional_info<iterator, T> add_row_front(const size_type num_ = 1);
+  additional_info<iterator, T> add_row_after(const size_type row_num_ = 1,
+                                             const size_type num_ = 1);
+  /**
+   * add a col to current metrix, resize
+   * @return additional_infoMatrix<T>:: for the users to assign
+   * Matrix<T>::Matrix<T>::value
+   */
+  additional_info<column_iterator, T> add_col_back(const size_type num_ = 1);
+  additional_info<column_iterator, T> add_col_front(const size_type num_ = 1);
+  additional_info<column_iterator, T> add_col_after(
+      const size_type col_num_ = 1, const size_type num_ = 1);
   ///------------------------------------
   /// operations related to iterator
   ///------------------------------------
-  /// normal iterator
+  /// iterator based on row
   /**
-   * the sequence through which the iteration goes on is undefined
-   * only guarantee that all elements in the met can be access through
- begin(),
    * end() and ++
    * @return an iterator go through the whole Matrix
    */
@@ -506,64 +496,78 @@ class Matrix {
   const_reverse_iterator crend() noexcept {
     return std::reverse_iterator<T>(ed);
   }
-  /// iterator based on row
   /**
-   * @param nu would no be used, it is a way to put different kinds of iterators
-   * into an overloaded set
+   * @param nu would no be used, it is a way to indicate that the begginning is
+   * i_ row. into an overloaded set
    */
-  row_iterator begin(size_type row_, void *nu) {
-    return ::row_iterator<T>(size_pair(), beg + col_length * row_);
+  iterator begin(size_type row_, void *nu) { return beg + col_length * row_; }
+  const_iterator begin(size_type row_, void *nu) const {
+    return beg + col_length * row_;
   }
-  const_row_iterator begin(size_type row_, void *nu) const {
-    return ::row_iterator<T>(size_pair(), beg + col_length * row_);
-  }
-  const_row_iterator cbegin(size_type row_, void *nu) const {
-    return ::row_iterator<T>(size_pair(), beg + col_length * row_);
+  const_iterator cbegin(size_type row_, void *nu) const {
+    return beg + col_length * row_;
   }
   /**
    * @param nu would no be used, it is a way to put different kinds of iterators
    * into an overloaded set into an overloaded set
    */
-  row_iterator end(size_type row_, void *nu) {
-    return ::row_iterator<T>(size_pair(), beg + col_length * (row_ + 1));
+  iterator end(size_type row_, void *nu) {
+    return beg + col_length * (row_ + 1);
   }
-  const_row_iterator end(size_type row_, void *nu) const {
-    return ::row_iterator<T>(size_pair(), beg + col_length * (row_ + 1));
+  const_iterator end(size_type row_, void *nu) const {
+    return beg + col_length * (row_ + 1);
   }
-  const_row_iterator cend(size_type row_, void *nu) const {
-    return ::row_iterator<T>(size_pair(), beg + col_length * (row_ + 1));
+  const_iterator cend(size_type row_, void *nu) const {
+    return beg + col_length * (row_ + 1);
   }
   /// iterator based on col
   /**
    * @param nu would no be used
    * @see begin(void *nu, size_type row_);
    */
-  col_iterator begin(void *nu, size_type col_) {
-    return ::col_iterator<T>(size_pair(), beg + col_);
+  column_iterator begin(void *nu, size_type col_) {
+    return col_iterator<T>(size_pair(), beg + col_);
   }
-  const_col_iterator begin(void *nu, size_type col_) const {
-    return ::col_iterator<T>(size_pair(), beg + col_);
+  const_column_iterator begin(void *nu, size_type col_) const {
+    return col_iterator<T>(size_pair(), beg + col_);
   }
-  const_col_iterator cbegin(void *nu, size_type col_) const {
-    return ::col_iterator<T>(size_pair(), beg + col_);
+  const_column_iterator cbegin(void *nu, size_type col_) const {
+    return col_iterator<T>(size_pair(), beg + col_);
   }
   /**
    * @see end(void *nu, size_type row_)
    */
-  col_iterator end(void *nu, size_type col_) {
-    return ::col_iterator<T>(size_pair(), beg + col_ + row_length * col_length);
+  column_iterator end(void *nu, size_type col_) {
+    return col_iterator<T>(size_pair(), beg + col_ + row_length * col_length);
   }
-  const_col_iterator end(void *nu, size_type col_) const {
-    return ::col_iterator<T>(size_pair(), beg + col_ + row_length * col_length);
+  const_column_iterator end(void *nu, size_type col_) const {
+    return col_iterator<T>(size_pair(), beg + col_ + row_length * col_length);
   }
-  const_col_iterator cend(void *nu, size_type col_) const {
-    return ::col_iterator<T>(size_pair(), beg + col_ + row_length * col_length);
+  const_column_iterator cend(void *nu, size_type col_) const {
+    return col_iterator<T>(size_pair(), beg + col_ + row_length * col_length);
+  }
+
+  /**
+   * iterator based on column
+   */
+  column_iterator begin_on_col() noexcept { return begin(nullptr, 0); }
+  const_column_iterator begin_on_col() const noexcept {
+    return begin(nullptr, 0);
+  }
+  const_column_iterator cbegin_on_col() const noexcept {
+    return begin(nullptr, 0);
+  }
+  column_iterator end_on_col() noexcept { return end(nullptr, col_length - 1); }
+  const_column_iterator end_on_col() const noexcept {
+    return end(nullptr, col_length - 1);
+  }
+  const_column_iterator cend_on_col() const noexcept {
+    return end(nullptr, col_length - 1);
   }
 
  private:
   /**
    * utility function for trans.
-   * low efficiency
    * @see trans()
    * @exception
    */
@@ -590,19 +594,33 @@ class Matrix {
   }
   /**
    * utility function for resize()
-   * low-efficiency
    */
   Matrix &do_resize(size_type i_, size_type j_) {
-    Matrix res_(i_, j_, 0);
-    auto row_ = i_ < row_length ? i_ : row_length;
-    auto col_ = j_ < col_length ? j_ : col_length;
-    for (int i = 0; i < row_; i++) {
-      for (int j = 0; j < col_; j++) {
-        res_[{i, j}] = (*this)[{i, j}];
+    if (j_ == col_length && i_ * j_ <= max_size()) {
+      auto dis_ = i_ * j_ - size();
+      auto fin_ = ed + dis_;
+      if (i_ < row_length) {
+        while (fin_ != ed) {
+          ator.destroy(ed--);
+        }
+      } else {
+        while (fin_ != ed) {
+          ator.construct(ed++, 0);
+        }
       }
+      row_length = i_;
+    } else {
+      Matrix res_(i_, j_, 0);
+      auto row_ = i_ < row_length ? i_ : row_length;
+      auto col_ = j_ < col_length ? j_ : col_length;
+      for (int i = 0; i < row_; i++) {
+        for (int j = 0; j < col_; j++) {
+          res_[{i, j}] = (*this)[{i, j}];
+        }
+      }
+      *this = std::move(res_);
+      return *this;
     }
-    *this = std::move(res_);
-    return *this;
   }
 
   /**
@@ -625,55 +643,107 @@ class Matrix {
 template <typename T>
 std::allocator<T> Matrix<T>::ator = std::allocator<T>();
 
-///-----------companion iterators-------
+///------------additional_info class---------
+template <typename It, typename T>
+class additional_info {
+  friend Matrix<T>;
+  using it_pair_type = std::pair<It, It>;
+  using storage_type = std::vector<it_pair_type>;
+  using size_type = typename storage_type::size_type;
+  storage_type iters;
+  additional_info &push_back(it_pair_type p_) { iters.push_back(p_); }
+  additional_info() = default;
+  additional_info(const additional_info &) = default;
+  additional_info(additional_info &&) = default;
+
+ public:
+  size_type size() { return iters.size(); }
+  it_pair_type get(const size_type id) { return iters.at(id); }
+  It get_begin(const size_type id) { return iters.at(id).first; }
+  It get_end(const size_type id) { return iters.at(id).second; }
+};
+
+///------------End definition---------------
+
+///-------------defining methods in Matrix----------
 template <typename T>
-class cr_iterator_base;
+additional_info<typename Matrix<T>::iterator, T> Matrix<T>::add_row_back(
+    const size_type num_) {
+  additional_info<typename Matrix<T>::iterator, T> info_;
+  resize(row_length + num_, col_length);
+  for (int i_ = 0; i_ < num_; i_++) {
+    auto current_row_ = row_length + i_ + 1;
+    info_.push_back({begin(current_row_, nullptr), end(current_row_, nullptr)});
+  }
+  return info_;
+}
 
 template <typename T>
-void swap(cr_iterator_base<T> &it1_, cr_iterator_base<T> &it2_) noexcept {
+additional_info<typename Matrix<T>::iterator, T> Matrix<T>::add_row_front(
+    const size_type num_) {
+  additional_info<typename Matrix<T>::iterator, T> info_;
+  auto b_ = begin();
+  auto e_ = end();
+  auto sz_ = size();
+  resize(row_length + num_, col_length);
+  std::copy_backward(b_, e_, end());
+  std::fill_n(b_, size() - sz_, 0);
+  for (int i_ = 0; i_ < num_; i_++) {
+    info_.push_back({begin(i_, nullptr), end(i_, nullptr)});
+  }
+  return info_;
+}
+// template <typename T>
+// additional_info<typename Matrix<T>::iterator, T> Matrix<T>::add_row_after(
+//     const size_type row_num_, const size_type num_ = 1);
+
+// template <typename T>
+// additional_info<col_iterator, T> Matrix<T>::add_col(const size_type num_ =
+// 1); template <typename T> additional_info<col_iterator, T>
+// Matrix<T>::add_col_front(
+//     const size_type num_ = 1);
+// template <typename T>
+// additional_info<col_iterator, T> Matrix<T>::add_col_after(
+//     const size_type col_num_, const size_type num_ = 1);
+///---------------End definition--------------
+
+///-----------companion iterators-------
+
+template <typename T>
+void swap(col_iterator<T> &it1_, col_iterator<T> &it2_) noexcept {
   it1_.swap(it2_);
 }
 
 template <typename T>
-cr_iterator_base<T> operator+(const int dis_,
-                              const cr_iterator_base<T> &it_) noexcept {
+col_iterator<T> operator+(const int dis_, const col_iterator<T> &it_) noexcept {
   return it_ + dis_;
 }
 
 template <typename T>
-class cr_iterator_base {
- protected:
+class col_iterator {
+ public:
   friend Matrix<T>;
-  friend void swap<>(cr_iterator_base<T> &it1_,
-                     cr_iterator_base<T> &it2_) noexcept;
+  template <typename U>
+  friend void swp(col_iterator<U> &it1_, col_iterator<U> &it2_) noexcept;
   using size_type = typename Matrix<T>::size_type;
   using difference_type =
-      typename std::iterator_traits<cr_iterator_base<T>>::difference_type;
-  using pointer = typename std::iterator_traits<cr_iterator_base<T>>::pointer;
+      typename std::iterator_traits<col_iterator<T>>::difference_type;
+  using pointer = typename std::iterator_traits<col_iterator<T>>::pointer;
   using const_pointer = const pointer;
-  using value_type =
-      typename std::iterator_traits<cr_iterator_base<T>>::value_type;
+  using value_type = typename std::iterator_traits<col_iterator<T>>::value_type;
   using const_value_type = const value_type;
-  using reference =
-      typename std::iterator_traits<cr_iterator_base<T>>::reference;
+  using reference = typename std::iterator_traits<col_iterator<T>>::reference;
   using const_reference = const reference;
 
-  cr_iterator_base(const std::pair<size_type, size_type> size_info_,
-                   T *ptr_) noexcept
+  col_iterator(const std::pair<size_type, size_type> size_info_,
+               T *ptr_) noexcept
       : ptr(ptr_), row_size(size_info_.first), col_size(size_info_.second) {}
 
-  ///-----------attributes-------------
-  T *ptr;
-  size_type row_size;
-  size_type col_size;
-  ///----------End attributes----------
+  col_iterator(const col_iterator &) noexcept = default;
+  col_iterator(col_iterator &&) noexcept = default;
+  virtual ~col_iterator() = default;
 
- public:
-  cr_iterator_base(const cr_iterator_base &) noexcept = default;
-  cr_iterator_base(cr_iterator_base &&) noexcept = default;
-  virtual ~cr_iterator_base() = default;
-
-  void swap(cr_iterator_base &it_) {
+  void swap(col_iterator &it_) {
     using std::swap;
 
     swap(ptr, it_.ptr);
@@ -681,75 +751,9 @@ class cr_iterator_base {
     swap(col_size, it_.col_size);
   }
 
-  cr_iterator_base &operator=(cr_iterator_base it_) noexcept { swap(it_); }
+  col_iterator &operator=(col_iterator it_) noexcept { swap(it_); }
   /// input && output iterator part
 
-  /// operator++() noexcept
-  /// operator++(int na) noexcept
-  reference operator*() noexcept { return *ptr; }
-  const_reference operator*() const noexcept { return *ptr; }
-  pointer operator->() noexcept { return ptr; }
-  const_pointer operator->() const noexcept { return ptr; }
-  /// forward iterator part
-  cr_iterator_base() noexcept : ptr(nullptr), row_size(0), col_size(0) {}
-  bool operator==(const cr_iterator_base &it_) const noexcept {
-    return ptr == it_.ptr;
-  }
-  bool operator!=(const cr_iterator_base &it_) const noexcept {
-    return !(it_ == *this);
-  }
-  /// bidirectional Iterator
-
-  /// &operator--() noexcept
-  /// operator--() noexcept
-
-  /// random access iterator
-  bool operator<(const cr_iterator_base &it_) const noexcept {
-    return ptr - it_.ptr < 0;
-  }
-  bool operator<=(const cr_iterator_base &it_) const noexcept {
-    return *this < it_ || *this == it_;
-  }
-  bool operator>(const cr_iterator_base &it_) const noexcept {
-    return !(*this <= it_);
-  }
-  bool operator>=(const cr_iterator_base &it_) const noexcept {
-    return !(*this < it_);
-  }
-
-  // virtual operator+(const int dis_) const noexcept
-  // virtual &operator+=(const int dis_) noexcept
-  // virtual operator-(const int dis_) const noexcept
-  // virtual &operator-=(const int dis_) noexcept
-
-  difference_type operator-(const cr_iterator_base &it_) const noexcept {
-    return ptr - it_.ptr;
-  }
-
-  value_type operator[](const int pos_) noexcept { return *(ptr + pos_); }
-  const_value_type operator[](const int pos_) const noexcept {
-    return *(ptr + pos_);
-  }
-  /// others
-  operator bool() const noexcept { return ptr; }
-};
-/**
- * create an row_iterator through col_iterator
- */
-template <typename T>
-row_iterator<T> col_to_row(const col_iterator<T> &it_) noexcept {
-  return row_iterator<T>({it_.row_size, it_.col_size}, it_.ptr);
-};
-
-template <typename T>
-class col_iterator : public cr_iterator_base<T> {
- public:
-  ///--------------attributes--------------------------
-  friend Matrix<T>;
-  friend row_iterator<T> col_to_row<>(const col_iterator<T> &it_) noexcept;
-  ///--------------End attribues------------------------
-  ///-------------methods-----------------------------
-  using cr_iterator_base<T>::cr_iterator_base;
   col_iterator &operator++() noexcept {
     this->ptr += this->col_size;
     return (*this);
@@ -759,6 +763,20 @@ class col_iterator : public cr_iterator_base<T> {
     ++*this;
     return temp;
   }
+  reference operator*() noexcept { return *ptr; }
+  const_reference operator*() const noexcept { return *ptr; }
+  pointer operator->() noexcept { return ptr; }
+  const_pointer operator->() const noexcept { return ptr; }
+
+  /// forward iterator part
+  col_iterator() noexcept : ptr(nullptr), row_size(0), col_size(0) {}
+  bool operator==(const col_iterator &it_) const noexcept {
+    return ptr == it_.ptr;
+  }
+  bool operator!=(const col_iterator &it_) const noexcept {
+    return !(it_ == *this);
+  }
+  /// bidirectional Iterator
 
   col_iterator &operator--() noexcept {
     this->ptr -= this->col_size;
@@ -768,6 +786,20 @@ class col_iterator : public cr_iterator_base<T> {
     auto temp = *this;
     --*this;
     return temp;
+  }
+
+  /// random access iterator
+  bool operator<(const col_iterator &it_) const noexcept {
+    return ptr - it_.ptr < 0;
+  }
+  bool operator<=(const col_iterator &it_) const noexcept {
+    return *this < it_ || *this == it_;
+  }
+  bool operator>(const col_iterator &it_) const noexcept {
+    return !(*this <= it_);
+  }
+  bool operator>=(const col_iterator &it_) const noexcept {
+    return !(*this < it_);
   }
 
   col_iterator operator+(const int dis_) const noexcept {
@@ -784,78 +816,30 @@ class col_iterator : public cr_iterator_base<T> {
     temp -= dis_;
     return temp;
   }
+
   col_iterator &operator-=(const int dis_) noexcept {
     this->ptr -= this->col_size * dis_;
     return (*this);
   }
-  ///--------------End methods-------------------------
+
+  difference_type operator-(const col_iterator &it_) const noexcept {
+    return ptr - it_.ptr;
+  }
+
+  value_type operator[](const int pos_) noexcept { return *(ptr + pos_); }
+  const_value_type operator[](const int pos_) const noexcept {
+    return *(ptr + pos_);
+  }
+
+  /// others
+  operator bool() const noexcept { return ptr; }
+
+ private:
+  ///-----------attributes-------------
+  T *ptr;
+  size_type row_size;
+  size_type col_size;
+  ///----------End attributes----------
 };
-
-template <typename T>
-col_iterator<T> row_to_col(const row_iterator<T> &it_) noexcept {
-  return col_iterator<T>({it_.row_size, it_.col_size}, it_.ptr);
-}
-
-template <typename T>
-class row_iterator : public cr_iterator_base<T> {
- public:
-  ///--------------attributes--------------------------
-  friend Matrix<T>;
-  friend col_iterator<T> row_to_col<>(const row_iterator<T> &it_) noexcept;
-  template <typename U>
-  friend typename row_iterator<U>::difference_type operator-(
-      const row_iterator<U> &it1_, const row_iterator<U> &it2_);
-  ///--------------End attribues------------------------
-  ///-------------methods-----------------------------
-  using cr_iterator_base<T>::cr_iterator_base;
-  row_iterator &operator++() noexcept {
-    ++this->ptr;
-    return *this;
-  }
-  row_iterator operator++(int)noexcept {
-    auto t = *this;
-    ++*this;
-    return t;
-  }
-
-  row_iterator &operator--() noexcept {
-    --this->ptr;
-    return *this;
-  }
-
-  row_iterator operator--(int)noexcept {
-    auto t = *this;
-    --*this;
-    return t;
-  }
-
-  row_iterator operator+(const int dis_) const noexcept {
-    auto t = *this;
-    t += dis_;
-    return t;
-  }
-  row_iterator &operator+=(const int dis_) noexcept {
-    this->ptr += dis_;
-    return *this;
-  }
-  row_iterator operator-(const int dis_) const noexcept {
-    auto t = *this;
-    t -= dis_;
-    return t;
-  }
-  row_iterator &operator-=(const int dis_) noexcept {
-    this->ptr -= dis_;
-    return *this;
-  }
-
-  ///--------------End methods-------------------------
-};
-
-// fix me
-template <typename T>
-typename row_iterator<T>::difference_type operator-(
-    const row_iterator<T> &it1_, const row_iterator<T> &it2_) {
-  return it1_.ptr - it2_.ptr;
-}
 
 #endif
