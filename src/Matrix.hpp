@@ -84,7 +84,7 @@ class Format_testor {
 template <typename T>
 std::ostream &operator<<(std::ostream &out, const Matrix<T> &met_) {
   unsigned int elem_num = met_.size();
-  for (int i = 0; i < elem_num; i++) {
+  for (unsigned int i = 0; i < elem_num; i++) {
     if (!(i % met_.col_length) && i) out << std::endl;
     out << met_.beg[i];
     if (i != elem_num - 1) out << ' ';
@@ -120,6 +120,7 @@ std::istream &operator>>(std::istream &in, Matrix<T> &met_) {
   met_.row_length = h_;
 
   met_ = Matrix<T>(temp.begin(), temp.end());
+  return in;
 }
 
 template <typename T>
@@ -164,18 +165,17 @@ class Matrix {
   /**
    * default constructor, create an unit Matrix
    */
-  Matrix() : col_length(0), row_length(0), beg(nullptr), m_size(0), ed(beg) {}
+  Matrix() : row_length(0), col_length(0), beg(nullptr), ed(beg), m_size(0) {}
   /**
    * constructor which creates an unit Matrix
    */
   Matrix(size_type sz_)
       : row_length(sz_),
         col_length(sz_),
-        beg(ator.allocate(size() * 2)),
-        m_size(size() * 2),
-        ed(beg) {
-    size_type pos_ = 0;
-    for (int i = 0; i < size(); i++) {
+        beg(ator.allocate(proper_size(sz_, sz_))),
+        ed(beg),
+        m_size(proper_size(sz_, sz_)) {
+    for (size_type i = 0; i < size(); i++) {
       if (i % sz_ == i / sz_) {
         ator.construct(ed++, 1);
       } else {
@@ -189,10 +189,10 @@ class Matrix {
   Matrix(const size_type i_, const size_type j_, const T &val_ = 0)
       : row_length(i_),
         col_length(j_),
-        beg(ator.allocate(size() * 2)),
-        m_size(size() * 2),
-        ed(beg) {
-    for (int i = 0; i < size(); i++) {
+        beg(ator.allocate(proper_size(i_, j_))),
+        ed(beg),
+        m_size(proper_size(i_, j_)) {
+    for (size_type i = 0; i < size(); i++) {
       ator.construct(ed++, val_);
     }
   }
@@ -203,10 +203,10 @@ class Matrix {
   Matrix(const T (&arr_)[C])
       : row_length(1),
         col_length(C),
-        beg(ator.allocate(C * 2)),
-        m_size(C * 2),
-        ed(beg) {
-    for (int i = 0; i < C; i++) ator.construct(ed++, 0);
+        beg(ator.allocate(proper_size(C, 1))),
+        ed(beg),
+        m_size(proper_size(C, 1)) {
+    for (size_type i = 0; i < C; i++) ator.construct(ed++, 0);
     std::copy(std::begin(arr_), std::end(arr_), beg);
   }
   /**
@@ -216,10 +216,10 @@ class Matrix {
   Matrix(const size_type i_, const size_type j_, const T (&arr_)[C])
       : row_length(i_),
         col_length(j_),
-        beg(ator.allocate(size() * 2)),
-        m_size(size() * 2),
-        ed(beg) {
-    for (int i = 0; i < size(); i++) ator.construct(ed++, 0);
+        beg(ator.allocate(proper_size(i_, j_))),
+        ed(beg),
+        m_size(proper_size(i_, j_)) {
+    for (size_type i = 0; i < size(); i++) ator.construct(ed++, 0);
     if (C <= size()) {
       std::copy(std::begin(arr_), std::end(arr_), beg);
     } else {
@@ -233,10 +233,10 @@ class Matrix {
   Matrix(const IT beg_, const IT end_)
       : row_length(1),
         col_length(std::distance(beg_, end_)),
-        beg(ator.allocate(size() * 2)),
-        m_size(size() * 2),
-        ed(beg) {
-    for (int i = 0; i < size(); i++) ator.construct(ed++, 0);
+        beg(ator.allocate(proper_size(row_length, col_length))),
+        ed(beg),
+        m_size(proper_size(row_length, col_length)) {
+    for (size_type i = 0; i < size(); i++) ator.construct(ed++, 0);
     std::copy(beg_, end_, beg);
   }
   /**
@@ -250,9 +250,9 @@ class Matrix {
       : row_length(met_.row_length),
         col_length(met_.col_length),
         beg(ator.allocate(met_.max_size())),
-        m_size(met_.max_size()),
-        ed(beg) {
-    for (int i = 0; i < size(); i++) ator.construct(ed++, 0);
+        ed(beg),
+        m_size(met_.max_size()) {
+    for (size_type i = 0; i < size(); i++) ator.construct(ed++, 0);
     std::copy(met_.begin(), met_.end(), beg);
   }
   /**
@@ -275,16 +275,14 @@ class Matrix {
   /**
    * move && copy assignment operator
    */
-  Matrix &operator=(Matrix met_) { swap(met_); }
+  Matrix &operator=(Matrix met_) {
+    swap(met_);
+    return *this;
+  }
   /**
    * destructor
    */
-  ~Matrix() {
-    while (beg != ed) {
-      ator.destroy(--ed);
-    }
-    ator.deallocate(beg, m_size);
-  }
+  ~Matrix() { free_resource(); }
   ///---------------------------------------
   /// operator overloading
   ///---------------------------------------
@@ -322,8 +320,8 @@ class Matrix {
     else {
       Matrix res_(row_length, met_.col_length, 0);
       std::vector<T> p_(res_.col_length, 0);
-      for (int i = 0; i < res_.row_length; ++i) {
-        for (int j = 0; j < res_.col_length; ++j) {
+      for (size_type i = 0; i < res_.row_length; ++i) {
+        for (size_type j = 0; j < res_.col_length; ++j) {
           auto r_beg = (*this).cbegin(i, nullptr);
           auto r_end = (*this).cend(i, nullptr);
           auto c_beg = met_.cbegin(nullptr, j);
@@ -452,19 +450,156 @@ class Matrix {
    * add rows to currenct metrix, resize if room is not enough
    * @return additional_info for the users to assign value
    */
-  additional_info<iterator, T> add_row_back(const size_type num_ = 1);
-  additional_info<iterator, T> add_row_front(const size_type num_ = 1);
-  additional_info<iterator, T> add_row_after(const size_type row_num_ = 1,
-                                             const size_type num_ = 1);
+  std::pair<iterator, iterator> add_row_back() {
+    secure_space(row_length + 1, col_length);
+    for (size_type i = 0; i < col_length; ++i) {
+      ator.construct(ed++, 0);
+    }
+    ++row_length;
+    return std::make_pair(begin(0, nullptr), end(0, nullptr));
+  }
+  std::pair<iterator, iterator> add_row_front() {
+    secure_space(row_length + 1, col_length);
+    auto t = ed;
+    for (size_type i = 0; i < col_length; ++i) {
+      ator.construct(ed++);
+    }
+    ++row_length;
+    std::copy_backward(beg, t, ed);
+    for (size_type i = 0; i < col_length; ++i) {
+      at(0, i) = 0;
+    }
+    return std::make_pair(begin(row_length - 1, nullptr),
+                          end(row_length - 1, nullptr));
+  }
+
+  std::pair<iterator, iterator> add_row_after(const size_type row_num_) {
+    secure_space(row_length + 1, col_length);
+    auto which = row_num_ + 2;
+    auto diff = which * col_length;
+    auto t = ed;
+    for (size_type i = 0; i < col_length; ++i) {
+      ator.construct(ed++);
+    }
+    ++row_length;
+    std::copy_backward(beg + diff, t, ed);
+    for (size_type i = 0; i < col_length; ++i) {
+      at(which, i) = 0;
+    }
+    return std::make_pair(begin(which, nullptr), end(which, nullptr));
+  }
   /**
    * add a col to current metrix, resize
    * @return additional_infoMatrix<T>:: for the users to assign
    * Matrix<T>::Matrix<T>::value
    */
-  additional_info<column_iterator, T> add_col_back(const size_type num_ = 1);
-  additional_info<column_iterator, T> add_col_front(const size_type num_ = 1);
-  additional_info<column_iterator, T> add_col_after(
-      const size_type col_num_ = 1, const size_type num_ = 1);
+  std::pair<column_iterator, column_iterator> add_col_back() {
+    secure_space(row_length, col_length + 1);
+    for (size_type i = 0; i < row_length; ++i) {
+      ator.construct(ed++);
+    }
+    for (size_type i = row_length; i > 0; --i) {
+      auto which_row_ = i - 1;
+      std::copy_backward(begin(which_row_, nullptr), end(which_row_, nullptr),
+                         end(which_row_, nullptr) + which_row_);
+    }
+    ++col_length;
+    for (auto b_ = begin(nullptr, col_length - 1),
+              e_ = end(nullptr, col_length - 1);
+         b_ != e_; ++b_) {
+      *b_ = 0;
+    }
+    return std::make_pair(begin(nullptr, 0), end(nullptr, 0));
+  }
+
+  std::pair<column_iterator, column_iterator> add_col_front() {
+    secure_space(row_length, col_length + 1);
+    for (size_type i = 0; i < row_length; ++i) {
+      ator.construct(ed++);
+    }
+    for (size_type i = row_length; i > 0; --i) {
+      auto which_row_ = i - 1;
+      std::copy_backward(begin(which_row_, nullptr), end(which_row_, nullptr),
+                         end(which_row_, nullptr) + i);
+    }
+    ++col_length;
+    for (auto b_ = begin(nullptr, 0), e_ = end(nullptr, 0); b_ != e_; ++b_) {
+      *b_ = 0;
+    }
+    return std::make_pair(begin(nullptr, col_length - 1),
+                          end(nullptr, col_length - 1));
+  }
+
+  std::pair<column_iterator, column_iterator> add_col_after(
+      const size_type col_num_) {
+    secure_space(row_length, col_length + 1);
+    add_col_back();
+    auto which = col_num_ + 2;
+    for (size_type i = 0; i < row_length; ++i) {
+      std::copy_backward(begin(i, nullptr) + which, end(i, nullptr) - 1,
+                         end(i, nullptr));
+    }
+    for (auto b_ = begin(nullptr, which), e_ = end(nullptr, which); b_ != e_;
+         ++b_) {
+      *b_ = 0;
+    }
+    return std::make_pair(begin(nullptr, which), end(nullptr, which));
+  }
+
+  void del_row_back() {
+    for (size_type i = 0; i < col_length; ++i) {
+      ator.destroy(--ed);
+    }
+    --row_length;
+  }
+
+  void del_row_front() {
+    std::copy(begin() + col_length, end(), begin());
+    for (size_type i = 0; i < col_length; ++i) {
+      ator.destroy(--ed);
+    }
+    --row_length;
+  }
+
+  void del_row_after(const size_type row_num_) {
+    auto which = row_num_ + 2;
+    std::copy(begin() + col_length * which, end(),
+              begin() + col_length * (which - 1));
+    for (size_type i = 0; i < col_length; ++i) {
+      ator.destroy(--ed);
+    }
+    --row_length;
+  }
+
+  void del_col_back() {
+    for (size_type i = 1; i < row_length; ++i) {
+      std::copy(begin(i, nullptr), end(i, nullptr) - 1, begin(i, nullptr) - i);
+    }
+    for (size_type i = 0; i < row_length; ++i) {
+      ator.destroy(ed--);
+    }
+    --col_length;
+  }
+
+  void del_col_front() {
+    for (size_type i = 0; i < row_length; ++i) {
+      std::copy(begin(i, nullptr) + 1, end(i, nullptr), begin(i, nullptr) - i);
+    }
+    for (size_type i = 0; i < row_length; ++i) {
+      ator.destroy(ed--);
+    }
+    --col_length;
+  }
+  // may be faster
+  void del_col_after(const size_type col_num_) {
+    auto which = col_num_ + 2;
+    for (size_type i = 0; i < row_length; ++i) {
+      std::copy(begin(i, nullptr) + which, end(i, nullptr),
+                begin(i, nullptr) + which - 1);
+    }
+    del_col_back();
+  }
+
   ///------------------------------------
   /// operations related to iterator
   ///------------------------------------
@@ -573,8 +708,8 @@ class Matrix {
    */
   Matrix do_trans() const {
     Matrix res_((*this).col_length, (*this).row_length, 0);
-    for (int i = 0; i < (*this).row_length; ++i) {
-      for (int j = 0; j < (*this).col_length; ++j) {
+    for (size_type i = 0; i < (*this).row_length; ++i) {
+      for (size_type j = 0; j < (*this).col_length; ++j) {
         res_[{j, i}] = (*this)[{i, j}];
       }
     }
@@ -596,31 +731,49 @@ class Matrix {
    * utility function for resize()
    */
   Matrix &do_resize(size_type i_, size_type j_) {
-    if (j_ == col_length && i_ * j_ <= max_size()) {
-      auto dis_ = i_ * j_ - size();
-      auto fin_ = ed + dis_;
-      if (i_ < row_length) {
-        while (fin_ != ed) {
-          ator.destroy(ed--);
-        }
-      } else {
-        while (fin_ != ed) {
-          ator.construct(ed++, 0);
-        }
+    if (i_ < row_length) {
+      while (i_ != row_length) {
+        del_row_back();
       }
-      row_length = i_;
-    } else {
-      Matrix res_(i_, j_, 0);
-      auto row_ = i_ < row_length ? i_ : row_length;
-      auto col_ = j_ < col_length ? j_ : col_length;
-      for (int i = 0; i < row_; i++) {
-        for (int j = 0; j < col_; j++) {
-          res_[{i, j}] = (*this)[{i, j}];
-        }
-      }
-      *this = std::move(res_);
-      return *this;
     }
+    if (j_ < col_length) {
+      while (j_ != col_length) {
+        del_col_back();
+      }
+    }
+    if (j_ > col_length) {
+      while (j_ != col_length) {
+        add_col_back();
+      }
+    }
+    if (i_ > row_length) {
+      while (i_ != row_length) {
+        add_row_back();
+      }
+    }
+    return *this;
+  }
+
+  const size_type proper_size(const size_type i_, const size_type j_) {
+    return i_ * j_ * 2;
+  }
+  void secure_space(const size_type i_, const size_type j_) {
+    if (i_ * j_ > size()) {
+      auto t_beg = ator.allocate(proper_size(i_, j_));
+      auto t_ed = t_beg + size();
+      std::uninitialized_copy(beg, ed, t_beg);
+      free_resource();
+      beg = t_beg;
+      ed = t_ed;
+      m_size = proper_size(i_, j_);
+    }
+  }
+  void free_resource() noexcept {
+    while (beg != ed) {
+      ator.destroy(--ed);
+    }
+    ator.deallocate(beg, m_size);
+    m_size = 0;
   }
 
   /**
@@ -642,70 +795,6 @@ class Matrix {
 
 template <typename T>
 std::allocator<T> Matrix<T>::ator = std::allocator<T>();
-
-///------------additional_info class---------
-template <typename It, typename T>
-class additional_info {
-  friend Matrix<T>;
-  using it_pair_type = std::pair<It, It>;
-  using storage_type = std::vector<it_pair_type>;
-  using size_type = typename storage_type::size_type;
-  storage_type iters;
-  additional_info &push_back(it_pair_type p_) { iters.push_back(p_); }
-  additional_info() = default;
-  additional_info(const additional_info &) = default;
-  additional_info(additional_info &&) = default;
-
- public:
-  size_type size() { return iters.size(); }
-  it_pair_type get(const size_type id) { return iters.at(id); }
-  It get_begin(const size_type id) { return iters.at(id).first; }
-  It get_end(const size_type id) { return iters.at(id).second; }
-};
-
-///------------End definition---------------
-
-///-------------defining methods in Matrix----------
-template <typename T>
-additional_info<typename Matrix<T>::iterator, T> Matrix<T>::add_row_back(
-    const size_type num_) {
-  additional_info<typename Matrix<T>::iterator, T> info_;
-  resize(row_length + num_, col_length);
-  for (int i_ = 0; i_ < num_; i_++) {
-    auto current_row_ = row_length + i_ + 1;
-    info_.push_back({begin(current_row_, nullptr), end(current_row_, nullptr)});
-  }
-  return info_;
-}
-
-template <typename T>
-additional_info<typename Matrix<T>::iterator, T> Matrix<T>::add_row_front(
-    const size_type num_) {
-  additional_info<typename Matrix<T>::iterator, T> info_;
-  auto b_ = begin();
-  auto e_ = end();
-  auto sz_ = size();
-  resize(row_length + num_, col_length);
-  std::copy_backward(b_, e_, end());
-  std::fill_n(b_, size() - sz_, 0);
-  for (int i_ = 0; i_ < num_; i_++) {
-    info_.push_back({begin(i_, nullptr), end(i_, nullptr)});
-  }
-  return info_;
-}
-// template <typename T>
-// additional_info<typename Matrix<T>::iterator, T> Matrix<T>::add_row_after(
-//     const size_type row_num_, const size_type num_ = 1);
-
-// template <typename T>
-// additional_info<col_iterator, T> Matrix<T>::add_col(const size_type num_ =
-// 1); template <typename T> additional_info<col_iterator, T>
-// Matrix<T>::add_col_front(
-//     const size_type num_ = 1);
-// template <typename T>
-// additional_info<col_iterator, T> Matrix<T>::add_col_after(
-//     const size_type col_num_, const size_type num_ = 1);
-///---------------End definition--------------
 
 ///-----------companion iterators-------
 

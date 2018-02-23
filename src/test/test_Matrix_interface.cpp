@@ -15,6 +15,7 @@ void test_ctor_1() {
   std::cout << "a: [a(5)] \n" << a << std::endl;
   std::cout << "b: [b(2)] \n" << b << std::endl;
 }
+
 void test_ctor_2() {
   Matrix<int> c(3, 2, 2);
   Matrix<int> d(2, 2, 1);
@@ -177,15 +178,15 @@ void test_subscrption() {
   auto bound = a.size_pair();
   std::cout << "start accessing" << std::endl;
   std::cout << "for a:" << std::endl;
-  for (int i = 0; i < bound.first; i++) {
-    for (int j = 0; j < bound.second; j++) {
+  for (unsigned int i = 0; i < bound.first; i++) {
+    for (unsigned int j = 0; j < bound.second; j++) {
       std::cout << a[{i, j}] << ' ';
     }
     std::cout << std::endl;
   }
   std::cout << "for b:" << std::endl;
-  for (int i = 0; i < bound.first; i++) {
-    for (int j = 0; j < bound.second; j++) {
+  for (unsigned int i = 0; i < bound.first; i++) {
+    for (unsigned int j = 0; j < bound.second; j++) {
       std::cout << b[{i, j}] << ' ';
     }
     std::cout << std::endl;
@@ -203,6 +204,40 @@ void test_trans() {
   std::cout << "d = b.trans()" << std::endl;
   auto d = b.trans();
   std::cout << d << std::endl;
+}
+
+void test_row() {
+  Matrix<int> a(5, 6, 2);
+  std::cout << "a: \n" << a << std::endl;
+  a.add_row_back();
+  std::cout << "a.add_row_back(): \n" << a << std::endl;
+  a.add_row_front();
+  std::cout << "a.add_row_front(): \n" << a << std::endl;
+  a.add_row_after(2);
+  std::cout << "a.add_row_after(2): \n" << a << std::endl;
+  a.del_row_back();
+  std::cout << "a.del_row_back(): \n" << a << std::endl;
+  a.del_row_front();
+  std::cout << "a.del_row_front(): \n" << a << std::endl;
+  a.del_row_after(2);
+  std::cout << "a.del_row_after(2): \n" << a << std::endl;
+}
+
+void test_col() {
+  Matrix<int> a(5, 6, 2);
+  std::cout << "a: \n" << a << std::endl;
+  a.add_col_back();
+  std::cout << "a.add_col_back(): \n" << a << std::endl;
+  a.add_col_front();
+  std::cout << "a.add_col_front(): \n" << a << std::endl;
+  a.add_col_after(2);
+  std::cout << "a.add_col_after(2): \n" << a << std::endl;
+  a.del_col_back();
+  std::cout << "a.del_col_back(): \n" << a << std::endl;
+  a.del_col_front();
+  std::cout << "a.del_col_front(): \n" << a << std::endl;
+  a.del_col_after(2);
+  std::cout << "a.del_col_after(2): \n" << a << std::endl;
 }
 
 void test_resize() {
@@ -223,15 +258,6 @@ void test_resize() {
   std::cout << "g = a.resize(12,5)" << std::endl;
   auto g = a.resize(12, 5);
   std::cout << g << std::endl;
-}
-
-void test_add_row() {
-  Matrix<int> a(5, 6, 2);
-  std::cout << "a: \n" << a << std::endl;
-  a.add_row_back();
-  std::cout << "a.add_row_back(): \n" << a << std::endl;
-  a.add_row_front();
-  std::cout << "a.add_row_front(): \n" << a << std::endl;
 }
 
 int main() {
@@ -266,8 +292,11 @@ int main() {
   std::cout << "Start Testing other operations" << std::endl << std::endl;
   test_block("trans()", test_trans);
 
+  test_block("add/del row", test_row);
+
+  test_block("add/del col", test_col);
+
   test_block("resize()", test_resize);
 
-  test_block("add row", test_add_row);
   std::cout << "Tests of other operations Ended" << std::endl << std::endl;
 }
