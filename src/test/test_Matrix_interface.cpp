@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -260,6 +261,7 @@ void test_resize() {
   std::cout << g << std::endl;
 }
 
+
 int main() {
   std::cout << "Start Testing constructors" << std::endl << std::endl;
   test_block("Matrix(sz_)", test_ctor_1);
@@ -273,6 +275,17 @@ int main() {
   test_block("Matrix(const Matrix &met_)", test_ctor_7);
   test_block("Matrix(Matrix &&met_)", test_ctor_8);
   std::cout << "Start Tests of constructors Ended" << std::endl << std::endl;
+
+  std::cout << "Start Testing other operations" << std::endl << std::endl;
+  test_block("trans()", test_trans);
+
+  test_block("add/del row", test_row);
+
+  test_block("add/del col", test_col);
+
+  test_block("resize()", test_resize);
+
+  std::cout << "Tests of other operations Ended" << std::endl << std::endl;
 
   std::cout << "Start Testing overloaded operators" << std::endl << std::endl;
   test_block("assignment operator", test_op_assign);
@@ -288,15 +301,4 @@ int main() {
 
   test_block("operator[]", test_subscrption);
   std::cout << "Tests of overloaded operators Ended" << std::endl << std::endl;
-
-  std::cout << "Start Testing other operations" << std::endl << std::endl;
-  test_block("trans()", test_trans);
-
-  test_block("add/del row", test_row);
-
-  test_block("add/del col", test_col);
-
-  test_block("resize()", test_resize);
-
-  std::cout << "Tests of other operations Ended" << std::endl << std::endl;
 }

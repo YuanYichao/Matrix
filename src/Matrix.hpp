@@ -9,6 +9,8 @@
 #include <numeric>
 #include <utility>
 #include <vector>
+#include "reader.hpp"
+
 ///---own generic algorithm------
 
 /**
@@ -50,9 +52,6 @@ struct size_mismatch : public std::logic_error {
   using logic_error::what;
 };
 
-template <typename It, typename T>
-class additional_info;
-
 template <typename T>
 class Matrix;
 
@@ -68,60 +67,20 @@ struct std::iterator_traits<col_iterator<T>> {
   using iterator_category = std::random_access_iterator_tag;
 };
 
-class Format_testor {
- public:
-  static Format_testor Init_testor() { return Format_testor(); }
-  bool is_end(char ch_) { return ch_ == ';'; }
-  bool is_next_row(char ch_) { return ch_ == '\n'; }
-
- private:
-  Format_testor() = default;
-};
+template <typename T>
+class Matrix_reader;
 
 /**
  * post-condition: print the met into the file associated with out
  */
 template <typename T>
-std::ostream &operator<<(std::ostream &out, const Matrix<T> &met_) {
-  unsigned int elem_num = met_.size();
-  for (unsigned int i = 0; i < elem_num; i++) {
-    if (!(i % met_.col_length) && i) out << std::endl;
-    out << met_.beg[i];
-    if (i != elem_num - 1) out << ' ';
-  }
-  return out;
-}
+std::ostream &operator<<(std::ostream &out, const Matrix<T> &met_);
 
 /**
  * low efficiency
  */
 template <typename T>
-std::istream &operator>>(std::istream &in, Matrix<T> &met_) {
-  T val_;
-  std::vector<T> temp;
-  typename Matrix<T>::size_type w_ = 0, cnt_ = 0, h_ = 0;
-  auto tor = Format_testor::Init_testor();
-
-  while (!tor.is_end(in.get())) {
-    in.unget();
-    in >> val_;
-    temp.push_back(val_);
-    ++cnt_;
-    if (!w_ && tor.is_next_row(in.get())) {
-      w_ = cnt_;
-      in.unget();
-    } else {
-      in.unget();
-    }
-  }
-
-  h_ = cnt_ / w_;
-  met_.col_length = w_;
-  met_.row_length = h_;
-
-  met_ = Matrix<T>(temp.begin(), temp.end());
-  return in;
-}
+std::istream &operator>>(std::istream &in, Matrix<T> &met_);
 
 template <typename T>
 void swap(Matrix<T> &met1, Matrix<T> &met2) {
@@ -145,10 +104,11 @@ class Matrix {
   ///-------------------attributes----------
   friend col_iterator<T>;
   friend std::ostream &operator<<<>(std::ostream &out, const Matrix<T> &met_);
-  friend std::istream &operator>><>(std::istream &in, Matrix<T> &met_);
+  friend Matrix_reader<T>;
   friend bool is_identical_size<>(const Matrix<T> &met1, const Matrix<T> &met2);
   friend bool is_mult_size<>(const Matrix<T> &met1, const Matrix<T> &met2);
   using size_type = size_t;
+  using value_type = T;
   using iterator = T *;
   using reference = T &;
   using const_reference = const reference;
@@ -731,6 +691,11 @@ class Matrix {
    * utility function for resize()
    */
   Matrix &do_resize(size_type i_, size_type j_) {
+    if (i_ * j_ == size()) {
+      row_length = i_;
+      col_length = j_;
+      return *this;
+    }
     if (i_ < row_length) {
       while (i_ != row_length) {
         del_row_back();
@@ -795,6 +760,30 @@ class Matrix {
 
 template <typename T>
 std::allocator<T> Matrix<T>::ator = std::allocator<T>();
+
+/**
+ * post-condition: print the met into the file associated with out
+ */
+template <typename T>
+std::ostream &operator<<(std::ostream &out, const Matrix<T> &met_) {
+  unsigned int elem_num = met_.size();
+  for (unsigned int i = 0; i < elem_num; i++) {
+    if (!(i % met_.col_length) && i) out << std::endl;
+    out << met_.beg[i];
+    if (i != elem_num - 1) out << ' ';
+  }
+  return out;
+}
+
+/**
+ * low efficiency
+ */
+template <typename T>
+std::istream &operator>>(std::ifstream &in, Matrix<T> &met_) {
+  static Matrix_reader<Matrix<T>> reader;
+  met_ = reader.read(in);
+  return in;
+}
 
 ///-----------companion iterators-------
 
