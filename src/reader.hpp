@@ -35,6 +35,7 @@ class Reader_base {
  public:
   using Type = Format_testor::Type;
   virtual T read(std::ifstream &in_) = 0;
+  virtual T read(std::string str_) = 0;
   // virtual T read(istream &in_) = 0;
   Reader_base(Type type_) : testor(Format_testor::Init_testor(type_)) {}
 
@@ -43,9 +44,6 @@ class Reader_base {
   std::string snap(std::ifstream &in_) {
     std::string temp;
     char t;
-    while (!testor.is_begin(t = in_.get())) {
-      if (!testor.is_sys_trivial(t)) throw format_error();
-    }
     while (!testor.is_end(t = in_.get())) {
       temp.push_back(t);
     }
@@ -66,13 +64,16 @@ class Matrix_reader : public Reader_base<T> {
   using value_type = typename reader_type_traits<T>::value_type;
   using Type = typename Reader_base<T>::Type;
   Matrix_reader() : Reader_base<T>(Type::Matrix) {}
+
   virtual T read(std::ifstream &in_) override {
     auto str_ = this->snap(in_);
     return do_read(str_);
   }
+  virtual T read(std::string str_) override { return do_read(str_); }
 
  private:
   T do_read(std::string str_) {
+    str_ = str_.substr(1);
     size_type w_ = 0, h_ = 0;
     std::vector<value_type> temp;
     value_type t;
