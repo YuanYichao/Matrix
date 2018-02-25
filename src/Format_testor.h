@@ -4,29 +4,25 @@
 #include <string>
 #include <vector>
 
+
 struct format_info {
-  enum Type { Matrix };
+  enum Type { Matrix, Sys };
   static format_info get_info_of(Type type_) {
     switch (type_) {
       case Matrix: {
-        return format_info('[', ']', ';', {' ', ',', '\n'}, {' ', '\n', '\t'});
+        return format_info({'['}, {']'}, ';', {' ', '\t', '\n', ','});
       }
     }
   }
-  const char begin_ch;
-  const char end_ch;
+  const std::vector<char> begin_chs;
+  const std::vector<char> end_chs;
   const char next_row_ch;
   const std::vector<char> trivial_chs;
-  const std::vector<char> sys_trivial_chs;
 
  private:
-  format_info(char bc, char ec, char nc, std::vector<char> tc,
-              std::vector<char> sc)
-      : begin_ch(bc),
-        end_ch(ec),
-        next_row_ch(nc),
-        trivial_chs(tc),
-        sys_trivial_chs(sc) {}
+  format_info(std::vector<char> bc, std::vector<char> ec, char nc,
+              std::vector<char> tc)
+      : begin_chs(bc), end_chs(ec), next_row_ch(nc), trivial_chs(tc) {}
 };
 
 class Format_testor {
@@ -36,14 +32,18 @@ class Format_testor {
     static Format_testor t(type_);
     return t;
   }
-  bool is_sys_trivial(char ch_) const {
-    for (auto t : info.sys_trivial_chs) {
+  bool is_begin(char ch_) const {
+    for (auto t : info.begin_chs) {
       if (t == ch_) return true;
     }
     return false;
   }
-  bool is_begin(char ch_) const { return ch_ == info.begin_ch; }
-  bool is_end(char ch_) const { return ch_ == info.end_ch; }
+  bool is_end(char ch_) const {
+    for (auto t : info.end_chs) {
+      if (t == ch_) return true;
+    }
+    return false;
+  }
   bool is_next_row(char ch_) const { return ch_ == info.next_row_ch; }
   bool is_trivial(char ch_) const {
     for (auto t : info.trivial_chs) {
