@@ -5,12 +5,16 @@
 const std::string operand_chars = "1234567890";
 
 template <typename T>
-struct tanslator {
+struct translator {
   static T str_to_operand(std::string str_);
 };
 template <>
-struct tanslator<int> {
+struct translator<int> {
   static int str_to_operand(std::string str_) { return stoi(str_); }
+};
+template<>
+struct translator<double>{
+  static double str_to_operand(std::string str_) { return stod(str_); }
 };
 
 bool is_operand_part(char ch) {

@@ -3,23 +3,28 @@
 #include <memory>
 
 template <typename T>
+class Operators;
+
+template <typename T>
+class Plus_operator;
+
+template <typename T>
+class Minus_operator;
+
+template <typename T>
+class Multi_operator;
+
+template <typename T>
+class Divide_operator;
+
+template <typename T>
+class Negative_operator;
+
+template <typename T>
 class Expression_base;
 
 template <typename T>
 class Expression;
-
-template <typename T>
-Expression<T> make_plus_expr(Expression<T>, Expression<T>);
-template <typename T>
-Expression<T> make_minus_expr(Expression<T>, Expression<T>);
-template <typename T>
-Expression<T> make_multi_expr(Expression<T>, Expression<T>);
-template <typename T>
-Expression<T> make_divide_expr(Expression<T>, Expression<T>);
-template <typename T>
-Expression<T> make_negative_expr(Expression<T>);
-template <typename T>
-Expression<T> make_positive_expr(Expression<T>);
 
 template <typename T>
 class Expression_base {
@@ -46,17 +51,16 @@ class plain_Expression : public Expression_base<T> {
 template <typename T>
 class Expression {
   template <typename U>
-  friend Expression<U> make_plus_expr(Expression<U>, Expression<U>);
-  template <typename U>
-  friend Expression<U> make_minus_expr(Expression<U>, Expression<U>);
-  template <typename U>
-  friend Expression<U> make_multi_expr(Expression<U>, Expression<U>);
-  template <typename U>
-  friend Expression<U> make_divide_expr(Expression<U>, Expression<U>);
-  template <typename U>
   friend Expression<U> make_negative_expr(Expression<U>);
   template <typename U>
   friend Expression<U> make_positive_expr(Expression<U>);
+
+  friend Operators<T>;
+  friend Plus_operator<T>;
+  friend Minus_operator<T>;
+  friend Multi_operator<T>;
+  friend Divide_operator<T>;
+  friend Negative_operator<T>;
 
  public:
   Expression();
@@ -84,9 +88,7 @@ class binary_Expression : public Expression_base<T> {
 
 template <typename T>
 class plus_Expression : public binary_Expression<T> {
-  template <typename U>
-  friend Expression<U> make_plus_expr(Expression<U>, Expression<U>);
-
+  friend Plus_operator<T>;
   using value_type = typename binary_Expression<T>::value_type;
   using binary_Expression<T>::binary_Expression;
 
@@ -100,8 +102,7 @@ template <typename T>
 class minus_Expression : public binary_Expression<T> {
   using value_type = typename binary_Expression<T>::value_type;
   using binary_Expression<T>::binary_Expression;
-  template <typename U>
-  friend Expression<U> make_minus_expr(Expression<U>, Expression<U>);
+  friend Minus_operator<T>;
 
  private:
   virtual value_type eval() const override {
@@ -113,8 +114,7 @@ template <typename T>
 class multi_Expression : public binary_Expression<T> {
   using value_type = typename binary_Expression<T>::value_type;
   using binary_Expression<T>::binary_Expression;
-  template <typename U>
-  friend Expression<U> make_multi_expr(Expression<U>, Expression<U>);
+  friend Multi_operator<T>;
 
  private:
   virtual value_type eval() const override {
@@ -126,8 +126,7 @@ template <typename T>
 class divide_Expression : public binary_Expression<T> {
   using value_type = typename binary_Expression<T>::value_type;
   using binary_Expression<T>::binary_Expression;
-  template <typename U>
-  friend Expression<U> make_divide_expr(Expression<U>, Expression<U>);
+  friend Divide_operator<T>;
 
  private:
   virtual value_type eval() const override {
@@ -146,36 +145,12 @@ class unary_Expression : public Expression_base<T> {
   virtual value_type eval() const = 0;
 };
 
-
 template <typename T>
 class negative_Expression : public unary_Expression<T> {
   using value_type = typename unary_Expression<T>::value_type;
   using unary_Expression<T>::unary_Expression;
-  template <typename U>
-  friend Expression<U> make_negative_expr(Expression<U>);
-
+  friend Negative_operator<T>;
   virtual value_type eval() const override { return -this->expr.eval(); }
 };
 
-template <typename T>
-Expression<T> make_plus_expr(Expression<T> lhs, Expression<T> rhs) {
-  return std::shared_ptr<Expression_base<T>>(new plus_Expression<T>(lhs, rhs));
-}
-template <typename T>
-Expression<T> make_minus_expr(Expression<T> lhs, Expression<T> rhs) {
-  return std::shared_ptr<Expression_base<T>>(new minus_Expression<T>(lhs, rhs));
-}
-template <typename T>
-Expression<T> make_multi_expr(Expression<T> lhs, Expression<T> rhs) {
-  return std::shared_ptr<Expression_base<T>>(new multi_Expression<T>(lhs, rhs));
-}
-template <typename T>
-Expression<T> make_divide_expr(Expression<T> lhs, Expression<T> rhs) {
-  return std::shared_ptr<Expression_base<T>>(
-      new divide_Expression<T>(lhs, rhs));
-}
-template <typename T>
-Expression<T> make_negative_expr(Expression<T> expr) {
-  return std::shared_ptr<Expression_base<T>>(new negative_Expression<T>(expr));
-}
 #endif
