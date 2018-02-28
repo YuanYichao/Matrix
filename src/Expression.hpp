@@ -1,6 +1,8 @@
 #ifndef EXPRESSION
 #define EXPRESSION
+#include <iostream>
 #include <memory>
+//#define DBG
 
 template <typename T>
 class Operators;
@@ -45,16 +47,17 @@ class plain_Expression : public Expression_base<T> {
   friend Expression<T>;
   plain_Expression(const T& val_) : val(new T(val_)) {}
   std::shared_ptr<T> val;
-  T eval() const { return *val; }
+  T eval() const {
+#ifdef DBG
+    std::cout << "plain eval. value: " << *val << std::endl;
+#endif
+
+    return *val;
+  }
 };
 
 template <typename T>
 class Expression {
-  template <typename U>
-  friend Expression<U> make_negative_expr(Expression<U>);
-  template <typename U>
-  friend Expression<U> make_positive_expr(Expression<U>);
-
   friend Operators<T>;
   friend Plus_operator<T>;
   friend Minus_operator<T>;
@@ -94,6 +97,9 @@ class plus_Expression : public binary_Expression<T> {
 
  private:
   virtual value_type eval() const override {
+#ifdef DBG
+    std::cout << "plus eval. " << std::endl;
+#endif
     return this->lhs.eval() + this->rhs.eval();
   }
 };
@@ -106,6 +112,9 @@ class minus_Expression : public binary_Expression<T> {
 
  private:
   virtual value_type eval() const override {
+#ifdef DBG
+    std::cout << "minus eval. " << std::endl;
+#endif
     return this->lhs.eval() - this->rhs.eval();
   }
 };
@@ -118,6 +127,9 @@ class multi_Expression : public binary_Expression<T> {
 
  private:
   virtual value_type eval() const override {
+#ifdef DBG
+    std::cout << "multi eval. " << std::endl;
+#endif
     return this->lhs.eval() * this->rhs.eval();
   }
 };
@@ -130,6 +142,9 @@ class divide_Expression : public binary_Expression<T> {
 
  private:
   virtual value_type eval() const override {
+#ifdef DBG
+    std::cout << "divide eval. " << std::endl;
+#endif
     return this->lhs.eval() / this->rhs.eval();
   }
 };
@@ -150,7 +165,12 @@ class negative_Expression : public unary_Expression<T> {
   using value_type = typename unary_Expression<T>::value_type;
   using unary_Expression<T>::unary_Expression;
   friend Negative_operator<T>;
-  virtual value_type eval() const override { return -this->expr.eval(); }
+  virtual value_type eval() const override {
+#ifdef DBG
+    std::cout << "negative eval. " << std::endl;
+#endif
+    return -this->expr.eval();
+  }
 };
 
 #endif

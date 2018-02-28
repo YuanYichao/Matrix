@@ -46,7 +46,8 @@ struct expression_parser {
           auto ot = Operator_querier::query_type(token.first, prev.second,
                                                  tokens.front().second);
           Operators<T> op(ot);
-          if (!op_stack.empty() && op < op_stack.top()) {
+          if (!op_stack.empty() && op < op_stack.top() &&
+              seq_stack.top() < op_stack.size()) {
             eval_all();
           }
           op_stack.push(op);

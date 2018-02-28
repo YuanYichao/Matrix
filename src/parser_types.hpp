@@ -7,9 +7,10 @@ enum token_type : unsigned char {
   NAME = 1 << 1,
   OPERATOR = 1 << 2,
   SEQUENCE_BEG = 1 << 3,
-  SEQUENCE_END = 1 << 4
+  SEQUENCE_END = 1 << 4,
+  OBJECT = VALUE | NAME | SEQUENCE_END
 };
-enum op_types :unsigned char{ MULTI, DIVIDE, PLUS, MINUS, NEGATIVE };
-enum op_level :unsigned char{ PLS, MUL, UNA };
+enum op_types : unsigned char { MULTI, DIVIDE, PLUS, MINUS, NEGATIVE };
+enum op_level : unsigned char { PLS, MUL, UNA };
 const std::string operator_table[4] = {"+", "-", "*", "/"};
 #endif

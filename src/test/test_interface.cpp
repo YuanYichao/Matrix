@@ -1,4 +1,3 @@
-#include <iostream>
 #include "../Expression_parser.hpp"
 #include "../interface.h"
 
@@ -11,7 +10,9 @@ int main() {
       str = interface.get_command();
       continue;
     }
-    auto res_ = parser.parse(str).eval();
+
+    auto str_ = parser.parse(str);
+    auto res_ = str_.eval();
     interface.print(res_);
     str = interface.get_command();
   }
