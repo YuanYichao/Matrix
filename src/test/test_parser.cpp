@@ -3,5 +3,6 @@
 
 int main() {
   expression_parser<int> parser;
-  std::cout << parser.parse("5*3").eval();
+  int t = parser.parse("(1+5) *(2+1) /3").eval();
+  std::cout << t;
 }
